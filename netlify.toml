@@ -1,2 +1,7 @@
 [dev]
   autoLaunch = false
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
