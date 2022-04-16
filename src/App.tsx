@@ -4,6 +4,7 @@ import { RecoilRoot } from "recoil";
 import Settings from "./Settings";
 import GithubOauthCallback from "./GithubOauthCallback";
 import Home from "./Home";
+import Dashboard from "./Dashboard";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             element={<GithubOauthCallback />}
           />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/gists/:gistId" element={<Dashboard />} />
         </Routes>
       </BrowserRouter>
     </RecoilRoot>
