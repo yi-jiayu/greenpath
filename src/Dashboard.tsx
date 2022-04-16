@@ -7,6 +7,9 @@ import TimeAgo from "react-timeago";
 import dashboardSchema from "./schema.json";
 import Ajv from "ajv";
 
+const ajv = new Ajv();
+const dashboardSchemaValidator = ajv.compile(dashboardSchema);
+
 interface Gist {
   files: Record<string, { content: string }>;
 }
@@ -149,19 +152,34 @@ export default function Dashboard() {
     );
   }
 
-  const ajv = new Ajv();
-  const validate = ajv.compile(dashboardSchema);
-  const dashboard: DashboardConfig = JSON.parse(
-    data.files["dashboard.json"].content
-  );
-  const valid = validate(dashboard);
+  const content = data.files["dashboard.json"].content;
+  let dashboard: DashboardConfig;
+  try {
+    dashboard = JSON.parse(content);
+  } catch (e) {
+    return (
+      <Layout title="Error">
+        <p>Error while parsing dashboard config:</p>
+        <pre className="p-2 bg-gray-200 rounded-md">{String(e)}</pre>
+        <p>
+          Content of <code>dashboard.json:</code>
+        </p>
+        <pre className="p-2 bg-gray-200 rounded-md">{content}</pre>
+      </Layout>
+    );
+  }
+  const valid = dashboardSchemaValidator(dashboard);
   if (!valid) {
     return (
       <Layout title="Error">
         <p>
-          Content of <code>dashboard.json</code> is invalid.
+          Content of <code>dashboard.json</code> is invalid:
         </p>
-        <pre>{JSON.stringify(validate.errors, null, 2)}</pre>
+        <pre>{JSON.stringify(dashboardSchemaValidator.errors, null, 2)}</pre>
+        <p>
+          Content of <code>dashboard.json:</code>
+        </p>
+        <pre className="p-2 bg-gray-200 rounded-md">{content}</pre>
       </Layout>
     );
   }
