@@ -12,6 +12,7 @@ export default function Home() {
       if (match) {
         const [gistID] = match;
         navigate(`/gists/${gistID}`);
+        return;
       }
     }
     navigate(`gists/60dba3de0d23895023a125949ed18c63`);
