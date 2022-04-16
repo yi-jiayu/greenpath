@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom";
 import TimeAgo from "react-timeago";
 import dashboardSchema from "./schema.json";
 import Ajv from "ajv";
+import Unauthorized from "./Unauthorized";
 
 const ajv = new Ajv();
 const dashboardSchemaValidator = ajv.compile(dashboardSchema);
@@ -119,15 +120,7 @@ export default function Dashboard() {
   };
   const { data, error } = useSWR<Gist>(
     `https://api.github.com/gists/${gistId}`,
-    fetcher,
-    {
-      onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
-        if (error.response && error.response.status === 404) {
-          return;
-        }
-        setTimeout(() => revalidate({ retryCount }), config.errorRetryInterval);
-      },
-    }
+    fetcher
   );
 
   if (error && error.response && error.response.status === 404) {
@@ -136,6 +129,10 @@ export default function Dashboard() {
         <p>Could not find a gist with ID {gistId}</p>
       </Layout>
     );
+  }
+
+  if (error && error.response && error.response.status === 401) {
+    return <Unauthorized />;
   }
 
   if (!data) {
