@@ -4,9 +4,10 @@ import { useGithubToken } from "./github";
 import Layout from "./Layout";
 import { useParams } from "react-router-dom";
 import TimeAgo from "react-timeago";
+import dashboardSchema from "./schema.json";
+import Ajv from "ajv";
 
 interface Gist {
-  description: string;
   files: Record<string, { content: string }>;
 }
 
@@ -14,6 +15,11 @@ interface Build {
   owner: string;
   repo: string;
   ref: string;
+}
+
+interface DashboardConfig {
+  name: string;
+  builds: Build[];
 }
 
 const CommitStatusQuery = `query ($owner: String!, $repo: String!, $ref: String!) {
@@ -100,45 +106,74 @@ export default function Dashboard() {
   const [githubToken] = useGithubToken();
   const { gistId } = useParams();
 
-  const fetcher = async (gistId: string) => {
-    const res = await axios({
-      method: "get",
-      url: `https://api.github.com/gists/${gistId}`,
+  const fetcher = async (url: string) => {
+    const res = await axios.get(url, {
       headers: {
         authorization: `Bearer ${githubToken}`,
       },
     });
     return res.data;
   };
-  const { data } = useSWR<Gist>(gistId, fetcher);
-  let builds: Build[] = [];
-  if (data && data.files["builds.json"]) {
-    try {
-      const parsed = JSON.parse(data.files["builds.json"].content);
-      if (Array.isArray(parsed)) {
-        for (let elem of parsed) {
-          if (
-            elem.hasOwnProperty("owner") &&
-            typeof elem.owner === "string" &&
-            elem.hasOwnProperty("repo") &&
-            typeof elem.repo === "string" &&
-            elem.hasOwnProperty("ref") &&
-            typeof elem.ref === "string"
-          ) {
-            builds.push({ owner: elem.owner, repo: elem.repo, ref: elem.ref });
-          }
+  const { data, error } = useSWR<Gist>(
+    `https://api.github.com/gists/${gistId}`,
+    fetcher,
+    {
+      onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+        if (error.response && error.response.status === 404) {
+          return;
         }
-      }
-    } catch {}
+        setTimeout(() => revalidate({ retryCount }), config.errorRetryInterval);
+      },
+    }
+  );
+
+  if (error && error.response && error.response.status === 404) {
+    return (
+      <Layout title="Error">
+        <p>Could not find a gist with ID {gistId}</p>
+      </Layout>
+    );
   }
 
-  const title = data ? data.description || "Unnamed dashboard" : "Loading...";
+  if (!data) {
+    return <Layout title="Loading..." />;
+  }
+
+  if (!data.files["dashboard.json"]) {
+    return (
+      <Layout title="Error">
+        <p>
+          The gist should contain a file called <code>dashboard.json</code>.
+        </p>
+      </Layout>
+    );
+  }
+
+  const ajv = new Ajv();
+  const validate = ajv.compile(dashboardSchema);
+  const dashboard: DashboardConfig = JSON.parse(
+    data.files["dashboard.json"].content
+  );
+  const valid = validate(dashboard);
+  if (!valid) {
+    return (
+      <Layout title="Error">
+        <p>
+          Content of <code>dashboard.json</code> is invalid.
+        </p>
+        <pre>{JSON.stringify(validate.errors, null, 2)}</pre>
+      </Layout>
+    );
+  }
+
+  const title = dashboard.name || "Unnamed dashboard";
   return (
     <Layout title={title}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {builds.map((params) => (
-          <BuildStatus key={Object.values(params).join("/")} build={params} />
-        ))}
+        {dashboard &&
+          dashboard.builds.map((params) => (
+            <BuildStatus key={Object.values(params).join("/")} build={params} />
+          ))}
       </div>
     </Layout>
   );
