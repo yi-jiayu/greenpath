@@ -17,6 +17,9 @@
           },
           "ref": {
             "type": "string"
+          },
+          "include_prs": {
+            "type": "boolean"
           }
         },
         "required": ["owner", "repo", "ref"]
