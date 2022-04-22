@@ -318,6 +318,14 @@ export default function Dashboard() {
   return (
     <Layout title={title}>
       <div>
+        <a
+          href={`https://gist.github.com/${gistId}`}
+          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          View source
+        </a>
+      </div>
+      <div>
         <h2 className="font-medium text-2xl mb-2">Builds</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {dashboard &&
