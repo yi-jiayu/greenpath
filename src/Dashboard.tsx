@@ -7,6 +7,7 @@ import TimeAgo from "react-timeago";
 import dashboardSchema from "./schema.json";
 import Ajv from "ajv";
 import Unauthorized from "./Unauthorized";
+import { Helmet } from "react-helmet";
 
 const ajv = new Ajv();
 const dashboardSchemaValidator = ajv.compile(dashboardSchema);
@@ -317,6 +318,9 @@ export default function Dashboard() {
     : [];
   return (
     <Layout title={title}>
+      <Helmet>
+        <title>{title}</title>
+      </Helmet>
       <div>
         <a
           href={`https://gist.github.com/${gistId}`}
